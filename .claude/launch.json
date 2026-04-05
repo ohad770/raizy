@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Next.js Dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    },
+    {
+      "name": "Drizzle Studio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["drizzle-kit", "studio", "--port", "5983"],
+      "port": 5983
+    }
+  ]
+}
