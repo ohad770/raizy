@@ -1,46 +1,7 @@
 import { useTranslations } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-
-// Sample campaign data for the placeholder cards
-const SAMPLE_CAMPAIGNS = [
-  {
-    id: 1,
-    titleHe: "טיפול רפואי לנועם בן ה-7",
-    titleEn: "Medical treatment for 7-year-old Noam",
-    category: "medical",
-    raised: 48200,
-    goal: 80000,
-    donors: 312,
-    daysLeft: 14,
-    emoji: "🏥",
-    color: "from-rose-400 to-rose-600",
-  },
-  {
-    id: 2,
-    titleHe: "קמפוס אנרגיה סולרית לבית הספר",
-    titleEn: "Solar energy campus for the school",
-    category: "education",
-    raised: 23500,
-    goal: 35000,
-    donors: 178,
-    daysLeft: 21,
-    emoji: "☀️",
-    color: "from-amber-400 to-orange-500",
-  },
-  {
-    id: 3,
-    titleHe: "מקלט לחיות רחוב בתל אביב",
-    titleEn: "Street animal shelter in Tel Aviv",
-    category: "community",
-    raised: 61000,
-    goal: 70000,
-    donors: 504,
-    daysLeft: 7,
-    emoji: "🐾",
-    color: "from-emerald-400 to-teal-600",
-  },
-];
+import { mockCampaigns } from "@/lib/mock-campaigns";
 
 function formatNIS(amount: number) {
   return new Intl.NumberFormat("he-IL", {
@@ -52,6 +13,7 @@ function formatNIS(amount: number) {
 }
 
 export default async function HomePage({
+
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -183,22 +145,33 @@ function HomePageContent({ locale }: { locale: string }) {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {SAMPLE_CAMPAIGNS.map((c) => {
-              const pct = Math.round((c.raised / c.goal) * 100);
-              const title = isHe ? c.titleHe : c.titleEn;
+            {mockCampaigns.map((c) => {
+              const pct = Math.round((c.raisedAmount / c.goalAmount) * 100);
+              const title = !isHe && c.titleEn ? c.titleEn : c.title;
               return (
-                <div
+                <Link
                   key={c.id}
-                  className="card-hover group overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+                  href={`/${c.slug}` as `/${string}`}
+                  className="card-hover group overflow-hidden rounded-2xl border border-border bg-card shadow-sm block"
                 >
-                  {/* Campaign image placeholder */}
-                  <div className={`relative h-44 bg-gradient-to-br ${c.color} flex items-center justify-center`}>
-                    <span className="text-6xl">{c.emoji}</span>
-                    {c.daysLeft <= 7 && (
-                      <div className="absolute end-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-rose-600">
-                        {isHe ? `${c.daysLeft} ימים נותרו!` : `${c.daysLeft} days left!`}
+                  {/* Campaign hero gradient */}
+                  <div
+                    className="relative h-44"
+                    style={{
+                      background: `linear-gradient(135deg, ${c.gradientFrom} 0%, ${c.gradientTo} 100%)`,
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black/20" />
+                    {c.endsInDays !== undefined && c.endsInDays <= 7 && (
+                      <div className="absolute end-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-error-600">
+                        {isHe ? `${c.endsInDays} ימים נותרו!` : `${c.endsInDays} days left!`}
                       </div>
                     )}
+                    <div className="absolute bottom-3 start-4">
+                      <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                        {c.category}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="p-5">
@@ -209,10 +182,10 @@ function HomePageContent({ locale }: { locale: string }) {
                     {/* Progress */}
                     <div className="mt-4">
                       <div className="mb-1.5 flex items-center justify-between text-sm">
-                        <span className="font-bold text-primary-600 ltr-nums">
-                          {formatNIS(c.raised)}
+                        <span className="font-bold text-primary-600" dir="ltr">
+                          {formatNIS(c.raisedAmount)}
                         </span>
-                        <span className="font-semibold text-foreground">{pct}%</span>
+                        <span className="font-semibold text-foreground" dir="ltr">{pct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-primary-100">
                         <div
@@ -220,25 +193,25 @@ function HomePageContent({ locale }: { locale: string }) {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <div className="mt-1.5 text-xs text-muted ltr-nums">
+                      <div className="mt-1.5 text-xs text-muted" dir="ltr">
                         {isHe
-                          ? `מתוך ${formatNIS(c.goal)}`
-                          : `of ${formatNIS(c.goal)}`}
+                          ? `מתוך ${formatNIS(c.goalAmount)}`
+                          : `of ${formatNIS(c.goalAmount)}`}
                       </div>
                     </div>
 
                     {/* Footer */}
                     <div className="mt-4 flex items-center justify-between">
                       <div className="text-sm text-muted">
-                        <span className="font-semibold text-foreground ltr-nums">{c.donors.toLocaleString()}</span>{" "}
+                        <span className="font-semibold text-foreground" dir="ltr">{c.donorCount.toLocaleString()}</span>{" "}
                         {isHe ? "תורמים" : "donors"}
                       </div>
-                      <button className="rounded-lg bg-primary-600 px-4 py-1.5 text-sm font-bold text-white hover:bg-primary-700 transition-colors">
+                      <span className="rounded-lg bg-primary-600 px-4 py-1.5 text-sm font-bold text-white group-hover:bg-primary-700 transition-colors">
                         {isHe ? "תרום" : "Donate"}
-                      </button>
+                      </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
