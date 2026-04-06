@@ -1,22 +1,23 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import {
-  getCampaignBySlug,
-  formatNIS,
-  formatTimeAgo,
-  mockCampaigns,
-} from "@/lib/mock-campaigns";
+  getCampaignBySlugFromStore,
+  getAllCampaigns,
+} from "@/lib/campaign-store";
+import { formatNIS, formatTimeAgo } from "@/lib/mock-campaigns";
 import { ProgressBar } from "@/components/campaign/progress-bar";
 import {
   DonationButton,
   type DonationCampaignProps,
 } from "@/components/donation/donation-button";
 import { routing } from "@/i18n/routing";
+import { CampaignCreatedToast } from "./campaign-created-toast";
 
 export function generateStaticParams() {
   return routing.locales.flatMap((locale) =>
-    mockCampaigns.map((c) => ({ locale, slug: c.slug }))
+    getAllCampaigns().map((c) => ({ locale, slug: c.slug }))
   );
 }
 
@@ -26,7 +27,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const campaign = getCampaignBySlug(slug);
+  const campaign = getCampaignBySlugFromStore(slug);
   if (!campaign) return {};
 
   const pct = Math.round((campaign.raisedAmount / campaign.goalAmount) * 100);
@@ -60,7 +61,7 @@ export default async function CampaignPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const campaign = getCampaignBySlug(slug);
+  const campaign = getCampaignBySlugFromStore(slug);
   if (!campaign) notFound();
 
   const t = await getTranslations({ locale, namespace: "campaign" });
@@ -80,6 +81,10 @@ export default async function CampaignPage({
 
   return (
     <>
+      <Suspense>
+        <CampaignCreatedToast locale={locale} slug={slug} />
+      </Suspense>
+
       {/* ── Hero ── */}
       <div
         className="relative w-full"
@@ -88,6 +93,13 @@ export default async function CampaignPage({
           background: `linear-gradient(135deg, ${campaign.gradientFrom} 0%, ${campaign.gradientTo} 100%)`,
         }}
       >
+        {campaign.heroImageDataUrl && (
+          <img
+            src={campaign.heroImageDataUrl}
+            alt={campaign.title}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-black/35" />
         <div className="absolute bottom-0 start-0 end-0 p-5 sm:p-8">
           <span className="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">

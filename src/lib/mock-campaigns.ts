@@ -23,6 +23,7 @@ export interface MockCampaign {
   endsInDays?: number;
   gradientFrom: string; // hex
   gradientTo: string; // hex
+  heroImageDataUrl?: string; // base64 data URL for in-memory created campaigns
   recentDonations: RecentDonation[];
 }
 
