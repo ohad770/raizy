@@ -239,7 +239,9 @@ export function CampaignForm({ locale }: CampaignFormProps) {
     }
 
     const { slug } = await res.json();
-    router.push(`/${slug}?created=1` as `/${string}`);
+    router.push(
+      { pathname: `/${slug}` as `/${string}`, query: { created: "1" } },
+    );
   }
 
   // Current gradient for preview
