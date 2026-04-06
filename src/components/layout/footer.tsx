@@ -60,10 +60,10 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <a
-                  href="mailto:support@raizy.co.il"
+                  href="mailto:support@raizy.co"
                   className="text-sm text-muted hover:text-foreground transition-colors"
                 >
-                  support@raizy.co.il
+                  support@raizy.co
                 </a>
               </li>
             </ul>
