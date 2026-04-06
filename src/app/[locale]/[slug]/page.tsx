@@ -15,9 +15,10 @@ import {
 import { routing } from "@/i18n/routing";
 import { CampaignCreatedToast } from "./campaign-created-toast";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const campaigns = await getAllCampaigns();
   return routing.locales.flatMap((locale) =>
-    getAllCampaigns().map((c) => ({ locale, slug: c.slug }))
+    campaigns.map((c) => ({ locale, slug: c.slug }))
   );
 }
 
@@ -27,7 +28,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const campaign = getCampaignBySlugFromStore(slug);
+  const campaign = await getCampaignBySlugFromStore(slug);
   if (!campaign) return {};
 
   const pct = Math.round((campaign.raisedAmount / campaign.goalAmount) * 100);
@@ -61,7 +62,7 @@ export default async function CampaignPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const campaign = getCampaignBySlugFromStore(slug);
+  const campaign = await getCampaignBySlugFromStore(slug);
   if (!campaign) notFound();
 
   const t = await getTranslations({ locale, namespace: "campaign" });

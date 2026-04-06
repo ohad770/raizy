@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
-  if (isSlugTaken(data.slug)) {
+  if (await isSlugTaken(data.slug)) {
     return NextResponse.json({ error: "slug_taken" }, { status: 409 });
   }
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     recentDonations: [],
   };
 
-  addCampaign(newCampaign);
+  await addCampaign(newCampaign);
 
   return NextResponse.json({ slug: data.slug }, { status: 201 });
 }

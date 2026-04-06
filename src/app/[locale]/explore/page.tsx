@@ -33,7 +33,7 @@ export default async function ExplorePage({
   setRequestLocale(locale);
 
   const isHe = locale === "he";
-  const campaigns = getAllCampaigns();
+  const campaigns = await getAllCampaigns();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 pb-20">

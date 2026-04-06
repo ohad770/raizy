@@ -6,5 +6,5 @@ export async function GET(req: NextRequest) {
   if (!slug) {
     return NextResponse.json({ error: "missing_slug" }, { status: 400 });
   }
-  return NextResponse.json({ available: !isSlugTaken(slug) });
+  return NextResponse.json({ available: !(await isSlugTaken(slug)) });
 }

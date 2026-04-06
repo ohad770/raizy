@@ -1,7 +1,8 @@
 import { useTranslations } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { mockCampaigns } from "@/lib/mock-campaigns";
+import { getAllCampaigns } from "@/lib/campaign-store";
+import type { MockCampaign } from "@/lib/mock-campaigns";
 
 function formatNIS(amount: number) {
   return new Intl.NumberFormat("he-IL", {
@@ -13,7 +14,6 @@ function formatNIS(amount: number) {
 }
 
 export default async function HomePage({
-
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -21,10 +21,18 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <HomePageContent locale={locale} />;
+  const campaigns = await getAllCampaigns();
+
+  return <HomePageContent locale={locale} campaigns={campaigns} />;
 }
 
-function HomePageContent({ locale }: { locale: string }) {
+function HomePageContent({
+  locale,
+  campaigns,
+}: {
+  locale: string;
+  campaigns: MockCampaign[];
+}) {
   const t = useTranslations();
   const isHe = locale === "he";
 
@@ -145,7 +153,7 @@ function HomePageContent({ locale }: { locale: string }) {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {mockCampaigns.map((c) => {
+            {campaigns.map((c) => {
               const pct = Math.round((c.raisedAmount / c.goalAmount) * 100);
               const title = !isHe && c.titleEn ? c.titleEn : c.title;
               return (
