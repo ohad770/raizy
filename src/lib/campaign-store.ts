@@ -85,6 +85,18 @@ interface CampaignQueryOptions {
   includeInactive?: boolean;
 }
 
+interface CampaignIdentity {
+  id: string;
+  slug: string;
+}
+
+interface CampaignStatusUpdate {
+  id: string;
+  slug: string;
+  isActive: boolean;
+  disabledAt?: string;
+}
+
 function filterCampaigns(
   campaigns: MockCampaign[],
   options: CampaignQueryOptions = {}
@@ -93,18 +105,31 @@ function filterCampaigns(
   return campaigns.filter(campaignIsActive);
 }
 
-function setMemoryCampaignActive(id: string, isActive: boolean): boolean {
-  const campaign = memStore().find((item) => item.id === id);
-  if (!campaign) return false;
+function setMemoryCampaignActive(
+  identity: CampaignIdentity,
+  isActive: boolean
+): CampaignStatusUpdate | null {
+  const campaign = memStore().find(
+    (item) => item.id === identity.id && item.slug === identity.slug
+  );
+  if (!campaign) return null;
 
   campaign.isActive = isActive;
   campaign.disabledAt = isActive ? undefined : new Date().toISOString();
-  return true;
+  return {
+    id: campaign.id,
+    slug: campaign.slug,
+    isActive: campaign.isActive,
+    disabledAt: campaign.disabledAt,
+  };
 }
 
-function deleteMemoryCampaign(id: string): boolean {
+function deleteMemoryCampaign(identity: CampaignIdentity): boolean {
   const store = memStore();
-  const index = store.findIndex((campaign) => campaign.id === id);
+  const index = store.findIndex(
+    (campaign) =>
+      campaign.id === identity.id && campaign.slug === identity.slug
+  );
   if (index === -1) return false;
 
   store.splice(index, 1);
@@ -208,9 +233,9 @@ export async function addCampaign(campaign: MockCampaign): Promise<void> {
 }
 
 export async function setCampaignActive(
-  id: string,
+  identity: CampaignIdentity,
   isActive: boolean
-): Promise<boolean> {
+): Promise<CampaignStatusUpdate | null> {
   const disabledAt = isActive ? null : new Date().toISOString();
   const sb = getSupabaseServer();
 
@@ -218,39 +243,54 @@ export async function setCampaignActive(
     const { data, error } = await sb
       .from("mvp_campaigns")
       .update({ is_active: isActive, disabled_at: disabledAt })
-      .eq("id", id)
-      .select("id")
+      .eq("id", identity.id)
+      .eq("slug", identity.slug)
+      .select("id, slug, is_active, disabled_at")
       .maybeSingle();
 
     if (error) {
       console.error("[campaign-store] setCampaignActive Supabase error:", error);
-      return setMemoryCampaignActive(id, isActive);
+      return setMemoryCampaignActive(identity, isActive);
     }
 
-    if (data) return true;
+    if (data) {
+      const row = data as {
+        id: string;
+        slug: string;
+        is_active: boolean;
+        disabled_at: string | null;
+      };
+      return {
+        id: row.id,
+        slug: row.slug,
+        isActive: row.is_active,
+        disabledAt: row.disabled_at ?? undefined,
+      };
+    }
   }
 
-  return setMemoryCampaignActive(id, isActive);
+  return setMemoryCampaignActive(identity, isActive);
 }
 
-export async function deleteCampaign(id: string): Promise<boolean> {
+export async function deleteCampaign(identity: CampaignIdentity): Promise<boolean> {
   const sb = getSupabaseServer();
 
   if (sb) {
     const { data, error } = await sb
       .from("mvp_campaigns")
       .delete()
-      .eq("id", id)
-      .select("id")
+      .eq("id", identity.id)
+      .eq("slug", identity.slug)
+      .select("id, slug")
       .maybeSingle();
 
     if (error) {
       console.error("[campaign-store] deleteCampaign Supabase error:", error);
-      return deleteMemoryCampaign(id);
+      return deleteMemoryCampaign(identity);
     }
 
     if (data) return true;
   }
 
-  return deleteMemoryCampaign(id);
+  return deleteMemoryCampaign(identity);
 }

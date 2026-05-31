@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import type { MockCampaign } from "@/lib/mock-campaigns";
 
@@ -34,16 +34,21 @@ export function AdminCampaignsTable({
 }: AdminCampaignsTableProps) {
   const router = useRouter();
   const isHe = locale === "he";
+  const [localCampaigns, setLocalCampaigns] = useState(campaigns);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setLocalCampaigns(campaigns);
+  }, [campaigns]);
 
   const filteredCampaigns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return campaigns.filter((campaign) => {
+    return localCampaigns.filter((campaign) => {
       const isActive = campaign.isActive !== false;
       if (status === "active" && !isActive) return false;
       if (status === "inactive" && isActive) return false;
@@ -59,7 +64,7 @@ export function AdminCampaignsTable({
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(normalizedQuery));
     });
-  }, [campaigns, query, status]);
+  }, [localCampaigns, query, status]);
 
   async function runAction(
     campaign: MockCampaign,
@@ -78,15 +83,24 @@ export function AdminCampaignsTable({
     setPendingId(campaign.id);
     setMessage(null);
 
-    const res = await fetch(`/api/admin/campaigns/${campaign.id}`, {
+    const endpoint = `/api/admin/campaigns/${encodeURIComponent(campaign.id)}`;
+    const res = await fetch(
+      action === "delete"
+        ? `${endpoint}?slug=${encodeURIComponent(campaign.slug)}`
+        : endpoint,
+      {
       method: action === "delete" ? "DELETE" : "PATCH",
       headers:
         action === "delete" ? undefined : { "Content-Type": "application/json" },
       body:
         action === "delete"
           ? undefined
-          : JSON.stringify({ isActive: Boolean(nextActive) }),
-    });
+          : JSON.stringify({
+              isActive: Boolean(nextActive),
+              slug: campaign.slug,
+            }),
+      }
+    );
 
     setPendingId(null);
 
@@ -98,6 +112,24 @@ export function AdminCampaignsTable({
       );
       return;
     }
+
+    const result = (await res.json()) as {
+      campaign?: { isActive?: boolean; disabledAt?: string };
+    };
+
+    setLocalCampaigns((currentCampaigns) =>
+      action === "delete"
+        ? currentCampaigns.filter((item) => item.id !== campaign.id)
+        : currentCampaigns.map((item) =>
+            item.id === campaign.id && item.slug === campaign.slug
+              ? {
+                  ...item,
+                  isActive: result.campaign?.isActive ?? Boolean(nextActive),
+                  disabledAt: result.campaign?.disabledAt,
+                }
+              : item
+          )
+    );
 
     setMessage(
       action === "delete"
@@ -191,7 +223,7 @@ export function AdminCampaignsTable({
           <ul className="divide-y divide-border">
             {filteredCampaigns.map((campaign) => {
               const isActive = campaign.isActive !== false;
-              const isRowPending = pendingId === campaign.id || isPending;
+              const isRowPending = pendingId === campaign.id;
               const pct = Math.min(
                 100,
                 Math.round((campaign.raisedAmount / campaign.goalAmount) * 100)

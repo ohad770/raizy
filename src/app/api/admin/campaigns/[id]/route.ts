@@ -6,6 +6,7 @@ import { routing } from "@/i18n/routing";
 
 const updateCampaignStatusSchema = z.object({
   isActive: z.boolean(),
+  slug: z.string().min(1),
 });
 
 function revalidateCampaignViews() {
@@ -38,26 +39,35 @@ export async function PATCH(
     );
   }
 
-  const updated = await setCampaignActive(id, parsed.data.isActive);
+  const updated = await setCampaignActive(
+    { id, slug: parsed.data.slug },
+    parsed.data.isActive
+  );
   if (!updated) {
     return NextResponse.json({ error: "campaign_not_found" }, { status: 404 });
   }
 
   revalidateCampaignViews();
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, campaign: updated });
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const deleted = await deleteCampaign(id);
+  const slug = req.nextUrl.searchParams.get("slug");
+
+  if (!slug) {
+    return NextResponse.json({ error: "missing_slug" }, { status: 400 });
+  }
+
+  const deleted = await deleteCampaign({ id, slug });
 
   if (!deleted) {
     return NextResponse.json({ error: "campaign_not_found" }, { status: 404 });
   }
 
   revalidateCampaignViews();
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, campaign: { id, slug } });
 }
