@@ -24,6 +24,8 @@ export interface MockCampaign {
   gradientFrom: string; // hex
   gradientTo: string; // hex
   heroImageDataUrl?: string; // base64 data URL for in-memory created campaigns
+  isActive?: boolean; // defaults to true for older/mock campaigns
+  disabledAt?: string;
   recentDonations: RecentDonation[];
 }
 

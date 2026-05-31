@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createCampaignSchema } from "@/lib/campaign-schema";
 import { addCampaign, isSlugTaken } from "@/lib/campaign-store";
 import { CATEGORY_GRADIENTS, CATEGORY_HE_LABELS } from "@/lib/category-gradients";
 import type { MockCampaign } from "@/lib/mock-campaigns";
+import { routing } from "@/i18n/routing";
+
+function revalidateCampaignViews(slug: string) {
+  for (const locale of routing.locales) {
+    revalidatePath(`/${locale}`);
+    revalidatePath(`/${locale}/explore`);
+    revalidatePath(`/${locale}/admin`);
+    revalidatePath(`/${locale}/${slug}`);
+  }
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -43,10 +54,12 @@ export async function POST(req: NextRequest) {
     gradientFrom: gradient.from,
     gradientTo: gradient.to,
     heroImageDataUrl: data.heroImageDataUrl || undefined,
+    isActive: true,
     recentDonations: [],
   };
 
   await addCampaign(newCampaign);
+  revalidateCampaignViews(data.slug);
 
   return NextResponse.json({ slug: data.slug }, { status: 201 });
 }

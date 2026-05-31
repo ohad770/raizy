@@ -1,12 +1,14 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LanguageSwitcher } from "./language-switcher";
 
 export function Header() {
   const t = useTranslations();
+  const locale = useLocale();
   const pathname = usePathname();
+  const isAdmin = pathname === "/admin";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -31,6 +33,14 @@ export function Header() {
             className="text-sm font-medium text-muted transition-colors hover:text-primary-600"
           >
             {t("nav.explore")}
+          </Link>
+          <Link
+            href="/admin"
+            className={`text-sm font-medium transition-colors hover:text-primary-600 ${
+              isAdmin ? "text-primary-600" : "text-muted"
+            }`}
+          >
+            {locale === "he" ? "ניהול" : "Admin"}
           </Link>
         </nav>
 
